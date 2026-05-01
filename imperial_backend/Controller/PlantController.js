@@ -113,13 +113,12 @@ const getVariantFile = (index) =>
 // ─── PUT update plant ──────────────────────────────────────────────────────────
 export const Update = async (req, res) => {
   try {
-    const { name, scientificName, description, size } = req.body;
+    const { name, scientificName, description } = req.body; // ✅ removed size from here
 
-    // ✅ Parse JSON fields explicitly
     const careDetails = req.body.careDetails ? JSON.parse(req.body.careDetails) : undefined;
     const category = req.body.category ? JSON.parse(req.body.category) : undefined;
 
-    // ✅ Main image
+    // Main image
     const mainImage = req.files?.find(f => f.fieldname === 'image');
     let imageUrl = req.body.existingImageUrl || '';
     if (mainImage) {
@@ -127,13 +126,15 @@ export const Update = async (req, res) => {
       imageUrl = result.secure_url;
     }
 
-    // ✅ Variants vs single price+size
+    // ✅ Declare with let so they can be assigned
     let variants = undefined;
     let price = undefined;
-    // let size = undefined;
+    let size = undefined;
 
     const parsedVariants = req.body.variants ? JSON.parse(req.body.variants) : [];
-    if (req.body.variants) {
+
+    if (parsedVariants.length > 0) {
+      // ✅ Has variants
       variants = await Promise.all(
         parsedVariants.map(async (v, i) => {
           const variantFile = req.files?.find(f => f.fieldname === `variantImages[${i}]`);
@@ -146,18 +147,17 @@ export const Update = async (req, res) => {
         })
       );
     } else {
+      // ✅ Single price + size
       price = req.body.price;
-      size = req.body.size;  // ✅ explicit
+      size = req.body.size;
     }
 
-    // ✅ Build clean update object — no unwanted fields
+    // ✅ Clean updateData — no duplicate keys
     const updateData = {
       name,
       scientificName,
       description,
       imageUrl,
-      variants, 
-      size: req.body.size || '',  
       ...(careDetails && { careDetails }),
       ...(category && { category }),
       ...(price !== undefined && { price }),
@@ -165,7 +165,7 @@ export const Update = async (req, res) => {
       ...(variants !== undefined && { variants }),
     };
 
-    // ✅ check what's going in
+    console.log('updateData:', updateData); // ✅ debug log
 
     const plant = await Plant.findByIdAndUpdate(
       req.params.id,
