@@ -6,12 +6,14 @@ import { Sun } from 'lucide-react';
 import Footer from "../Components/Footer.jsx";
 import {useGSAP} from "@gsap/react"
 import Animation from "./Gsap.jsx";
+import PlantCardSkeleton from '../Components/PlantCardSkeleton.jsx';
 import gsap from "gsap"
 function PlantCatalog() {
     const [plants, setPlants] = useState([]);
     const [categoryfilter,setcategoryfilter] = useState([])
       const [price,setPrice] = useState('PRICE')
   const[search,setsearch] = useState('')
+  const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
 const [isSpeciesOpen, setIsSpeciesOpen] = useState(false);
 const [isPriceOpen, setIspriceOpen] = useState(false);
@@ -57,8 +59,11 @@ const getMinPrice = (plant) => {
 };
 
   useEffect(() => {
+    setLoading(true);
     getPlants().then((data) => {
+
       setPlants(data.data);
+       setLoading(false);
     });
   }, []);
   const [filterplant , setfilterplant] = useState([])
@@ -374,7 +379,10 @@ else if (price === 'HIGH TO LOW') {
 </section>
 
 <section className="grid  grid-cols-1 playfair-display-true md:grid-cols-2 lg:grid-cols-3 gap-x-12  gap-y-12">
-{filterplant.map((plant) => {
+  {loading
+    ? [...Array(6)].map((_, i) => <PlantCardSkeleton key={i} />)
+    : 
+filterplant.map((plant) => {
     const matchedCategories = plant.category?.filter(cat =>
   categoryfilter.includes(cat)
 );
@@ -447,7 +455,8 @@ return (
 </div>
 </article>
 </Link>
-)})}
+)})
+}
 
 
 
