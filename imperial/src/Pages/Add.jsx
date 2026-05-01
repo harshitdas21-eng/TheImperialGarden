@@ -104,7 +104,7 @@ const Add = () => {
     });
 
     const data = await res.json();
-    console.log('response:', data); // ✅ see what backend returns
+     // ✅ see what backend returns
 
     if (!data.success) {
       alert('Failed: ' + data.message);

@@ -8,7 +8,10 @@ import uploadonCloudinary from './config/Cloudinary.js';
 import router from './routes/plant.js';
 const app = express();
 const PORT = process.env.PORT || 3000;
-ConnectDB()
+app.use(async (req, res, next) => {
+  await ConnectDB();
+  next();
+});
  uploadonCloudinary()
  app.use(express.json())
 app.use(express.urlencoded({ extended: true }));
@@ -17,8 +20,6 @@ app.use('/api/plant',router)
 app.get('/',(req,res)=>{
     res.send("Api Working")
 })
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
 export default app;
 

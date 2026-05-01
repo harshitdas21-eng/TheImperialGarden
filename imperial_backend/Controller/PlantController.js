@@ -12,7 +12,7 @@ export const AllPlant = async (req, res) => {
     const filter = {};
     if (category) filter.category = category;
     if (search) filter.name = { $regex: search, $options: "i" };
-    console.log(filter)  
+      
     const plants = await Plant.find(filter).select("-__v").sort({ name: 1 });
     
     res.json({ success: true, count: plants.length, data: plants });
