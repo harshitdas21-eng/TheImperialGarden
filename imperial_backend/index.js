@@ -31,10 +31,9 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  preflightContinue: false,   // ✅ handles OPTIONS automatically
+  optionsSuccessStatus: 204,  // ✅ responds to preflight
 }));
-
-// ✅ Handle preflight requests
-app.options('*', cors());
 app.use('/api/plant',router)
 app.get('/',(req,res)=>{
     res.send("Api Working")
