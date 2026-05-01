@@ -92,7 +92,7 @@ const getVariantFile = (index) =>
       ...(variants.length > 0 && { variants }),
     });
 
-    const BASE_URL = process.env.BASE_URL || "http://localhost:5173";
+    const BASE_URL = process.env.BASE_URL
     const qrDataUrl = await QRCode.toDataURL(`${BASE_URL}/plant/${plant._id}`, {
       errorCorrectionLevel: "H",
       margin: 2,
@@ -198,8 +198,8 @@ export const Qr = async (req, res) => {
     const plant = await Plant.findById(req.params.id);
     if (!plant) return res.status(404).json({ success: false, message: "Plant not found" });
  
-    const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
-    const plantPageUrl = `${BASE_URL}/plant.html?id=${plant._id}`;
+    const BASE_URL = process.env.BASE_URL
+    const plantPageUrl = `${BASE_URL}/plant/${plant._id}`;
  
     const qrDataUrl = await QRCode.toDataURL(plantPageUrl, {
       errorCorrectionLevel: "H",
