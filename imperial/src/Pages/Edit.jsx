@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { Navigate } from 'react-router-dom';
-
+import { uploadToCloudinary } from '../Helper/UploadCloudinary';
 const BASE_URL =  import.meta.env.VITE_BACKEND_URL
 const emptyVariant = { size: '', price: '', image: null, imageUrl: '' };
 
@@ -102,64 +102,68 @@ const Edit = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (loading) return;
-    setLoading(true);
+  e.preventDefault();
+  if (loading) return;
+  setLoading(true);
 
-    const formData = new FormData();
-    formData.append('name', form.name);
-    formData.append('scientificName', form.scientificName);
-    formData.append("category", JSON.stringify(form.category));
-    formData.append('description', form.description);
-    
-    formData.append('careDetails', JSON.stringify(form.careDetails));
-
-    // Image — only append if new file selected
+  try {
+    // ✅ Use existing URL or upload new image
+    let imageUrl = form.imageUrl || '';
     if (form.image) {
-      formData.append('image', form.image);
-    } else {
-      formData.append('existingImageUrl', form.imageUrl); // keep old
+      imageUrl = await uploadToCloudinary(form.image);
     }
 
-    // Price vs variants
-    if (!hasVariants) {
-      formData.append('price', form.price);
-      formData.append('size', form.size);
-      formData.append('variants', JSON.stringify([]));
+    // ✅ Upload variant images
+    const variantsWithUrls = await Promise.all(
+      form.variants.map(async (v) => {
+        let variantImageUrl = v.imageUrl || '';
+        if (v.image) variantImageUrl = await uploadToCloudinary(v.image);
+        return { size: v.size, price: v.price, imageUrl: variantImageUrl, _id: v._id };
+      })
+    );
 
-    } else {
-      const variantsMeta = form.variants.map(v => ({
-        size: v.size,
-        price: v.price,
-        imageUrl: v.imageUrl,  // existing url
-        _id: v._id,
-      }));
-      formData.append('variants', JSON.stringify(variantsMeta));
+    // ✅ Send JSON not FormData
+    const payload = {
+      name: form.name,
+      scientificName: form.scientificName,
+      category: form.category,
+      description: form.description,
+      careDetails: form.careDetails,
+      imageUrl,
+      ...(hasVariants
+        ? { variants: variantsWithUrls }
+        : { price: form.price, size: form.size, variants: [] }
+      ),
+    };
 
-      form.variants.forEach((v, i) => {
-        if (v.image) formData.append(`variantImages[${i}]`, v.image);
-      });
+    const res = await fetch(`${BASE_URL}/api/plant/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        token: localStorage.getItem('token'),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.log(data);
+      alert('Update failed: ' + data.message);
+      setLoading(false);
+      return;
     }
 
-   const res = await fetch(`${BASE_URL}/api/plant/${id}`, {
-  method: 'PUT',
-  headers: {
-    token: localStorage.getItem('token'),  // ✅ add this
-  },
-  body: formData,
-});
+    alert('Plant Updated!');
+    navigate('/admin');
 
-const data = await res.json();
-
-if (!res.ok) {
-  console.log(data);
-  alert("Update failed");
-  setLoading(false);
-  return;
-}
-alert('Plant Updated!');
-navigate('/admin');
-  };
+  } catch (err) {
+    console.log('Error:', err);
+    alert('Something went wrong: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#162D24] to-[#1B4732] px-12 py-16">

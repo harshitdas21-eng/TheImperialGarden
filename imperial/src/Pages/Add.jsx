@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { useNavigate,Navigate } from 'react-router-dom';
 import { AlertTriangle } from 'lucide-react';
-
+import { uploadToCloudinary } from '../Helper/UploadCloudinary';
 const BASE_URL =    import.meta.env.VITE_BACKEND_URL
 
 const emptyForm = {
@@ -67,60 +67,74 @@ const Add = () => {
     setForm({ ...form, variants: form.variants.filter((_, i) => i !== index) });
   };
 
-  const handleSubmit = async (e) => {
-      e.preventDefault();
-    const formData = new FormData();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (loading) return;
+  setLoading(true);
 
-  
-
-    formData.append('name', form.name);
-    formData.append('scientificName', form.scientificName);
-    formData.append("category", JSON.stringify(form.category));
-    if (!hasVariants) {
-  formData.append('price', form.price);
-   formData.append('size', form.size);
-}
-    formData.append('description', form.description);
-    formData.append('image', form.image);            // ✅ auto generated QR
-    formData.append('careDetails', JSON.stringify(form.careDetails));
-
-  if (hasVariants) {
-  formData.append('variants', JSON.stringify(form.variants));
-
-  form.variants.forEach((variant, index) => {
-    if (variant.image) {
-      formData.append(`variantImages[${index}]`, variant.image);
+  try {
+    // ✅ Upload main image to Cloudinary from frontend
+    let imageUrl = '';
+    if (form.image) {
+      imageUrl = await uploadToCloudinary(form.image);
+    } else {
+      alert('Please upload an image');
+      setLoading(false);
+      return;
     }
-  });
-}
 
- try {
+    // ✅ Upload variant images
+    const variantsWithUrls = await Promise.all(
+      form.variants.map(async (v) => {
+        let variantImageUrl = '';
+        if (v.image) variantImageUrl = await uploadToCloudinary(v.image);
+        return { size: v.size, price: v.price, imageUrl: variantImageUrl };
+      })
+    );
+
+    // ✅ Send JSON not FormData
+    const payload = {
+      name: form.name,
+      scientificName: form.scientificName,
+      category: form.category,
+      description: form.description,
+      careDetails: form.careDetails,
+      imageUrl,
+      ...(hasVariants
+        ? { variants: variantsWithUrls }
+        : { price: form.price, size: form.size }
+      ),
+    };
+
     const res = await fetch(`${BASE_URL}/api/plant/create`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         token: localStorage.getItem('token'),
       },
-      body: formData,
+      body: JSON.stringify(payload),
     });
 
     const data = await res.json();
-     // ✅ see what backend returns
 
     if (!data.success) {
       alert('Failed: ' + data.message);
+      setLoading(false);
       return;
     }
 
     setForm(emptyForm);
     setHasVariants(false);
     alert('Plant Added!');
-    navigate('/admin');  // ✅ only runs if success
+    navigate('/admin');
 
   } catch (err) {
-    console.log('Error:', err);  // ✅ see the actual error
-    alert('Something went wrong');
+    console.log('Error:', err);
+    alert('Something went wrong: ' + err.message);
+  } finally {
+    setLoading(false);
   }
-}
+};
 
 
   return (

@@ -6,8 +6,8 @@ import authuser from '../Middleware/Auth.js';
 const router = express.Router();
 
 router.get('/',AllPlant);
-router.put('/:id',authuser,upload.any(),Update);
-router.post('/create',authuser,upload.any(),Create);
+router.put('/:id',authuser,Update);
+router.post('/create',authuser,Create);
 router.delete('/:id',authuser,Delete);
 router.get('/:id',Single)
 router.post('/login',Login)
