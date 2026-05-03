@@ -25,6 +25,7 @@ const emptyVariant = { size: '', price: '', image: null };
 
 const Add = () => {
     const navigate = useNavigate()
+    const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [hasVariants, setHasVariants] = useState(false);
  
